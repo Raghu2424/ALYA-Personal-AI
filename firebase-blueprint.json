@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user second-brain profile and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "photoURL": { "type": "string", "description": "User profile photo URL" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLoginAt": { "type": "string", "format": "date-time" },
+        "aiTone": { "type": "string", "enum": ["friendly", "concise", "thoughtful", "direct"] }
+      },
+      "required": ["uid", "displayName", "createdAt"]
+    },
+    "MemoryItem": {
+      "title": "MemoryItem",
+      "description": "User memory or fact stored in personal vault",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "description": "Owner Firebase UID" },
+        "content": { "type": "string", "description": "Memory note content", "maxLength": 2000 },
+        "category": { "type": "string", "enum": ["Work", "Personal", "Health", "Learning", "Values", "Preferences", "Projects", "General"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "content", "category", "createdAt", "updatedAt"]
+    },
+    "GoalItem": {
+      "title": "GoalItem",
+      "description": "Personal ambition or milestone",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "description": "Owner Firebase UID" },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "progress": { "type": "number" },
+        "deadline": { "type": "string" },
+        "status": { "type": "string", "enum": ["In Progress", "Completed", "Paused", "Not Started"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "title", "progress", "createdAt", "updatedAt"]
+    },
+    "TaskItem": {
+      "title": "TaskItem",
+      "description": "Actionable task checklist item",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "description": "Owner Firebase UID" },
+        "title": { "type": "string", "maxLength": 300 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "dueDate": { "type": "string" },
+        "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+        "completed": { "type": "boolean" },
+        "completedAt": { "type": "string" },
+        "relatedGoalId": { "type": "string" },
+        "relatedGoalTitle": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "title", "completed", "createdAt", "updatedAt"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "Private introspective journal reflection",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "description": "Owner Firebase UID" },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 10000 },
+        "mood": { "type": "string", "enum": ["Great", "Good", "Neutral", "Difficult", "Stressed"] },
+        "tags": { "type": "array" },
+        "analysis": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "title", "content", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Chat turn between user and ALYA",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["role", "text", "timestamp"]
+    },
+    "InteractionLog": {
+      "title": "InteractionLog",
+      "description": "Activity log item for security auditing",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile and tone settings"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "MemoryItem",
+      "description": "Personal memories private to the authenticated owner"
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": "GoalItem",
+      "description": "Personal goals private to the authenticated owner"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "TaskItem",
+      "description": "Tasks and action items private to the authenticated owner"
+    },
+    "/users/{userId}/journal/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "Private journal reflections and AI analysis"
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": "ChatMessage",
+      "description": "Private chat message turn history"
+    },
+    "/users/{userId}/interactions/{interactionId}": {
+      "schema": "InteractionLog",
+      "description": "Security audit and user interaction logs"
+    }
+  }
+}
