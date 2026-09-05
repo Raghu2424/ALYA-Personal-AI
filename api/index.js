@@ -1,5 +1,6 @@
 // server.ts
 import express from "express";
+import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 dotenv.config();
@@ -86,16 +87,16 @@ async function generateContentWithFallback(options) {
   throw new Error("AI generation temporarily unavailable across model ladder");
 }
 function createApp() {
-  const app = express();
-  app.use(express.json({ limit: "5mb" }));
-  app.use(express.urlencoded({ extended: true }));
-  app.use((req, res, next) => {
+  const app2 = express();
+  app2.use(express.json({ limit: "5mb" }));
+  app2.use(express.urlencoded({ extended: true }));
+  app2.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     next();
   });
-  app.get("/api/health", (req, res) => {
+  app2.get("/api/health", (req, res) => {
     res.json({
       status: "ok",
       service: "ALYA Backend",
@@ -103,7 +104,7 @@ function createApp() {
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
   });
-  app.post("/api/chat", async (req, res) => {
+  app2.post("/api/chat", async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const rawMessage = typeof body.message === "string" ? body.message.trim() : "";
@@ -489,7 +490,7 @@ You can add, edit, or delete any memory anytime in your **Memories** tab.`;
       }
     ];
   }
-  app.post("/api/break-goal", async (req, res) => {
+  app2.post("/api/break-goal", async (req, res) => {
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const rawTitle = typeof body.goalTitle === "string" ? body.goalTitle.trim() : "";
     const goalTitle = rawTitle.slice(0, 200);
@@ -567,7 +568,7 @@ Return ONLY a valid JSON array of tasks matching this exact schema:
       return res.json({ tasks: fallbackTasks });
     }
   });
-  app.post("/api/plan-tasks", async (req, res) => {
+  app2.post("/api/plan-tasks", async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const tasks = Array.isArray(body.tasks) ? body.tasks.slice(0, 30) : [];
@@ -677,7 +678,7 @@ Use the 5-minute rule: commit to starting your top priority task for just five m
       analyzedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
   }
-  app.post("/api/analyze-journal", async (req, res) => {
+  app2.post("/api/analyze-journal", async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const rawTitle = typeof body.title === "string" ? body.title : "Untitled Reflection";
@@ -863,7 +864,7 @@ Return raw JSON only without markdown formatting.`;
       }
     ];
   }
-  app.post("/api/ai-insights", async (req, res) => {
+  app2.post("/api/ai-insights", async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const goals = Array.isArray(body.goals) ? body.goals.slice(0, 20) : [];
@@ -1059,7 +1060,7 @@ Return raw JSON only.`;
       urgencyLabel: top.priority === "high" ? "High Impact" : top.dueDate ? "Due Soon" : "Foundation Step"
     };
   }
-  app.post("/api/create-plan", async (req, res) => {
+  app2.post("/api/create-plan", async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const rawPrompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
@@ -1140,7 +1141,7 @@ Return ONLY a valid JSON array matching this exact schema:
       return res.json({ tasks: fallbackTasks });
     }
   });
-  app.post("/api/recommend-task", async (req, res) => {
+  app2.post("/api/recommend-task", async (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const tasks = Array.isArray(body.tasks) ? body.tasks.filter((t) => !t.completed).slice(0, 30) : [];
@@ -1212,7 +1213,7 @@ Return ONLY a valid JSON object matching this schema:
       return res.json({ recommendation: fallbackRec });
     }
   });
-  app.use((err, req, res, next) => {
+  app2.use((err, req, res, next) => {
     console.error("[Security/Server Error]", err?.message || "Unknown error");
     if (res.headersSent) {
       return next(err);
@@ -1222,8 +1223,24 @@ Return ONLY a valid JSON object matching this schema:
       error: statusCode === 400 ? "Bad request payload." : "An internal service error occurred. Please try again later."
     });
   });
-  return app;
+  if (process.env.VERCEL !== "1") {
+    const distPath = path.join(process.cwd(), "dist");
+    app2.use(express.static(distPath));
+    app2.get("*", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+  return app2;
+}
+var app = createApp();
+var server_default = app;
+if (process.env.VERCEL !== "1" && process.env.NODE_ENV !== "test") {
+  const port = Number(process.env.PORT) || 3e3;
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`[ALYA] Server running on http://0.0.0.0:${port}`);
+  });
 }
 export {
-  createApp
+  createApp,
+  server_default as default
 };

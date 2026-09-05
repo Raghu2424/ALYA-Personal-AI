@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
@@ -1421,5 +1422,24 @@ Return ONLY a valid JSON object matching this schema:
     });
   });
 
+  if (process.env.VERCEL !== '1') {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (_req: Request, res: Response) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
   return app;
+}
+
+const app = createApp();
+
+export default app;
+
+if (process.env.VERCEL !== '1' && process.env.NODE_ENV !== 'test') {
+  const port = Number(process.env.PORT) || 3000;
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`[ALYA] Server running on http://0.0.0.0:${port}`);
+  });
 }
