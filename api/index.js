@@ -1,14 +1,8 @@
 // server.ts
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-import { createServer as createViteServer } from "vite";
 dotenv.config();
-var __filename = fileURLToPath(import.meta.url);
-var __dirname = path.dirname(__filename);
-var PORT = 3e3;
 var genAIClient = null;
 function getGenAI() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -91,8 +85,7 @@ async function generateContentWithFallback(options) {
   }
   throw new Error("AI generation temporarily unavailable across model ladder");
 }
-async function createApp(options = {}) {
-  const includeFrontend = options.includeFrontend === true;
+function createApp() {
   const app = express();
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true }));
@@ -1229,33 +1222,7 @@ Return ONLY a valid JSON object matching this schema:
       error: statusCode === 400 ? "Bad request payload." : "An internal service error occurred. Please try again later."
     });
   });
-  if (includeFrontend) {
-    if (process.env.NODE_ENV !== "production") {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa"
-      });
-      app.use(vite.middlewares);
-    } else {
-      const distPath = path.join(process.cwd(), "dist");
-      app.use(express.static(distPath));
-      app.get("*", (req, res) => {
-        res.sendFile(path.join(distPath, "index.html"));
-      });
-    }
-  }
   return app;
-}
-async function startServer() {
-  const app = await createApp({ includeFrontend: true });
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[ALYA] Server running on http://0.0.0.0:${PORT}`);
-  });
-}
-if (process.env.VERCEL !== "1") {
-  startServer().catch((err) => {
-    console.error("Fatal server startup error:", err);
-  });
 }
 export {
   createApp
