@@ -134,7 +134,8 @@ async function generateContentWithFallback(options: GenerateOptions): Promise<st
   throw new Error('AI generation temporarily unavailable across model ladder');
 }
 
-async function startServer() {
+export async function createApp(options: { includeFrontend?: boolean } = {}) {
+  const includeFrontend = options.includeFrontend === true;
   const app = express();
 
   // Top-Level Request Deserialization (Ordering Guarantee)
@@ -1429,26 +1430,35 @@ Return ONLY a valid JSON object matching this schema:
     });
   });
 
-  // Vite middleware in dev; static dist files in production
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+  // Keep frontend serving in the local Node process; Vercel serves dist separately.
+  if (includeFrontend) {
+    if (process.env.NODE_ENV !== 'production') {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req: Request, res: Response) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
   }
 
+  return app;
+}
+
+async function startServer() {
+  const app = await createApp({ includeFrontend: true });
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[ALYA] Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
-startServer().catch((err) => {
-  console.error('Fatal server startup error:', err);
-});
+if (process.env.VERCEL !== '1') {
+  startServer().catch((err) => {
+    console.error('Fatal server startup error:', err);
+  });
+}
