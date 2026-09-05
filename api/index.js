@@ -1257,13 +1257,6 @@ if (process.env.VERCEL !== "1") {
     console.error("Fatal server startup error:", err);
   });
 }
-
-// api/index.ts
-var appPromise = createApp();
-async function handler(req, res) {
-  const app = await appPromise;
-  return app(req, res);
-}
 export {
-  handler as default
+  createApp
 };
